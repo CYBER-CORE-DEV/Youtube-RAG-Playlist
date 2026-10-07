@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="color-scheme" content="light dark">
+<title>Playlist Chat</title>
+<style>
+:root{
+  --bg:#FBFBFD; --card:#FFFFFF; --soft:#F5F5F7; --ink:#1D1D1F; --muted:#6E6E73;
+  --blue:#0071E3; --link:#0066CC; --line:rgba(0,0,0,.09); --shadow:0 8px 30px rgba(0,0,0,.08);
+  --navbg:rgba(251,251,253,.86); --danger:#D70015;
+  --o1:rgba(255,214,200,.55); --o2:rgba(196,215,255,.6); --o3:rgba(214,240,226,.5);
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue","Segoe UI",Roboto,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0B0B0D; --card:#1C1C1E; --soft:#2C2C2E; --ink:#F5F5F7; --muted:#98989D;
+    --blue:#0A84FF; --link:#2997FF; --line:rgba(255,255,255,.12); --shadow:0 8px 30px rgba(0,0,0,.5);
+    --navbg:rgba(11,11,13,.86); --danger:#FF6B6B;
+    --o1:rgba(120,80,160,.28); --o2:rgba(40,90,170,.3); --o3:rgba(40,120,110,.22);}
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);min-height:100vh;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto 0;height:80vh;z-index:-1;pointer-events:none;
+  background:radial-gradient(60% 60% at 12% 0,var(--o1),transparent 70%),
+             radial-gradient(55% 55% at 88% 4%,var(--o2),transparent 70%),
+             radial-gradient(50% 50% at 50% 34%,var(--o3),transparent 70%)}
+button,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--blue);outline-offset:2px;border-radius:8px}
+a{color:var(--link);text-decoration:none}
+a:hover{text-decoration:underline}
+
+nav{position:sticky;top:0;z-index:20;background:var(--navbg);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+@supports ((-webkit-backdrop-filter:blur(1px)) or (backdrop-filter:blur(1px))){
+  nav{-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px)}}
+.nv{max-width:1180px;margin:0 auto;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+.brand{font-weight:600;font-size:17px;letter-spacing:-.01em}
+.linkbtn{background:none;border:0;color:var(--link);font-size:14px;cursor:pointer;padding:8px 4px}
+.linkbtn:hover{text-decoration:underline}
+
+#add{max-width:1180px;margin:0 auto;padding:18px 24px 0}
+.addin{display:flex;gap:10px;max-width:620px}
+#url{flex:1;min-width:0;padding:12px 18px;border-radius:980px;border:1px solid var(--line);background:var(--card);font-size:15px}
+.pill{border:0;border-radius:980px;background:var(--blue);color:#fff;padding:12px 22px;font-size:15px;font-weight:500;cursor:pointer}
+.pill:hover:not(:disabled){filter:brightness(1.08)}
+.pill:disabled{opacity:.4;cursor:not-allowed}
+#status{font-size:13px;color:var(--muted);margin-top:10px;min-height:20px}
+#status.err{color:var(--danger)}
+
+.grid{max-width:1180px;margin:0 auto;padding:24px;display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,430px);gap:44px;align-items:start}
+.chatcol{min-width:0;display:flex;flex-direction:column;min-height:calc(100vh - 120px)}
+#chat{flex:1;display:flex;flex-direction:column;gap:16px;padding-bottom:20px}
+
+.hero{margin:9vh auto 0;text-align:center;max-width:560px}
+.hero h1{font-size:clamp(34px,5.4vw,56px);line-height:1.07;font-weight:600;letter-spacing:-.025em;margin:0 0 16px}
+.hero p{font-size:clamp(17px,2.2vw,21px);color:var(--muted);margin:0;line-height:1.4}
+
+.msg{max-width:92%;font-size:16px;line-height:1.6;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--blue);color:#fff;padding:10px 16px;border-radius:22px 22px 6px 22px}
+.msg.bot{align-self:flex-start;background:var(--card);padding:18px 20px;border-radius:22px 22px 22px 6px;box-shadow:var(--shadow)}
+.msg.bot p{margin:0 0 10px}.msg.bot p:last-child{margin:0}
+.msg.bot ol,.msg.bot ul{margin:0 0 10px;padding-left:22px}.msg.bot li{margin-bottom:6px}
+.msg.err{align-self:flex-start;color:var(--danger);background:var(--card);padding:12px 16px;border-radius:16px;font-size:14.5px;box-shadow:var(--shadow)}
+.ts{font-weight:500}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:7px;background:var(--soft);color:var(--ink);border-radius:980px;padding:6px 14px 6px 11px;font-size:13px}
+.chip:hover{background:var(--blue);color:#fff;text-decoration:none}
+.chip svg,.mom svg{width:9px;height:9px;fill:currentColor;flex:none}
+.typing{color:var(--muted)}
+.typing::after{content:"";animation:dots 1.2s steps(4,end) infinite}
+@keyframes dots{0%{content:""}25%{content:"."}50%{content:".."}75%,100%{content:"..."}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.typing::after{animation:none;content:"..."}}
+
+.composer{position:sticky;bottom:0;background:var(--bg);padding:12px 0 calc(14px + env(safe-area-inset-bottom,0px));box-shadow:0 -14px 14px -8px var(--bg)}
+.field{display:flex;align-items:flex-end;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:26px;padding:6px 6px 6px 20px;box-shadow:var(--shadow)}
+#msg{flex:1;border:0;background:none;resize:none;outline:0;font-size:16px;padding:9px 0;max-height:140px;line-height:1.4}
+#msg::placeholder,#url::placeholder{color:var(--muted)}
+.field:focus-within{border-color:var(--blue)}
+#send{width:38px;height:38px;border-radius:50%;border:0;background:var(--blue);cursor:pointer;display:grid;place-items:center;flex:none}
+#send:disabled{opacity:.35;cursor:not-allowed}
+#send svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
+.stage{position:sticky;top:76px}
+.screen{position:relative;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:var(--soft);box-shadow:var(--shadow)}
+.screen iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.ph{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--muted);font-size:15px;line-height:1.5}
+.ph svg{width:44px;height:44px;fill:none;stroke:var(--muted);stroke-width:1.4;display:block;margin:0 auto 10px;opacity:.7}
+#now{font-size:17px;font-weight:600;letter-spacing:-.01em;margin:16px 4px 2px;line-height:1.35}
+.openrow{margin:0 4px;font-size:13.5px;color:var(--muted)}
+#moments{margin-top:18px}
+.mh{font-size:13px;color:var(--muted);margin:0 4px 6px}
+.mom{display:flex;align-items:center;gap:12px;padding:12px 4px;border-top:1px solid var(--line);color:var(--ink);font-size:14.5px}
+.mom:hover{text-decoration:none;color:var(--link)}
+.mom .mt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mom .tm{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13.5px}
+
+.navr{display:flex;align-items:center;gap:20px}
+#scrim{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:40}
+#drawer{position:fixed;top:0;right:0;bottom:0;width:min(380px,100%);z-index:50;background:var(--card);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;padding:calc(18px + env(safe-area-inset-top,0px)) 20px calc(16px + env(safe-area-inset-bottom,0px))}
+.dh{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.dh h2{margin:0;font-size:24px;font-weight:600;letter-spacing:-.02em}
+#hlist{flex:1;overflow-y:auto}
+.hrow{display:flex;align-items:center;border-top:1px solid var(--line)}
+.hopen{flex:1;min-width:0;text-align:left;background:none;border:0;padding:14px 4px;cursor:pointer}
+.ht{display:block;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hd{display:block;font-size:12.5px;color:var(--muted);margin-top:2px}
+.hrow.cur .ht{color:var(--link);font-weight:600}
+.hdel{background:none;border:0;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:10px}
+.hdel:hover{color:var(--danger)}
+.hempty{color:var(--muted);font-size:14.5px;padding:18px 4px}
+.dangerbtn{color:var(--danger);align-self:flex-start;margin-top:8px}
+@media (max-width:520px){.xs{display:none}.navr{gap:14px}}
+
+@media (max-width:860px){
+  .nv,#add{padding-left:18px;padding-right:18px}
+  .grid{grid-template-columns:1fr;gap:0;padding:12px 18px 0}
+  .stage{order:-1;top:calc(52px + env(safe-area-inset-top,0px));z-index:10;background:var(--bg);padding:8px 0 12px}
+  .stage.idle{display:none}
+  #moments{display:none}
+  #now{font-size:15px;margin-top:10px}
+  .chatcol{min-height:calc(100vh - 90px)}
+  .hero{margin-top:6vh}
+}
+</style>
+</head>
+<body>
+<nav><div class="nv">
+  <span class="brand">Playlist Chat</span>
+  <div class="navr">
+    <button class="linkbtn" id="newChat">New<span class="xs"> chat</span></button>
+    <button class="linkbtn" id="openHist">History</button>
+    <button class="linkbtn" id="toggleAdd" aria-expanded="true" aria-controls="add">Add<span class="xs"> playlist</span></button>
+  </div>
+</div></nav>
+
+<section id="add">
+  <div class="addin">
+    <input id="url" type="url" placeholder="Paste a public YouTube playlist link" aria-label="Playlist link">
+    <button class="pill" id="ingest">Add</button>
+  </div>
+  <div id="status" role="status"></div>
+</section>
+
+<main class="grid">
+  <section class="chatcol">
+    <div id="chat">
+      <div class="hero" id="hero">
+        <h1>Ask your playlist.</h1>
+        <p>Every answer points to the exact moment, and plays right here.</p>
+      </div>
+    </div>
+    <div class="composer">
+      <div class="field">
+        <textarea id="msg" rows="1" placeholder="Ask about the playlist" aria-label="Your question"></textarea>
+        <button id="send" aria-label="Send"><svg viewBox="0 0 16 16"><path d="M8 13V3M3.5 7.5L8 3l4.5 4.5"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="stage idle" id="stage">
+    <div class="screen" id="screen">
+      <div class="ph" id="ph"><div><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21"/><path d="M20 16l13 8-13 8z"/></svg>The moment an answer points to will play here.</div></div>
+    </div>
+    <div id="now"></div>
+    <div class="openrow" id="openrow" hidden>Not playing? <a id="open" target="_blank" rel="noopener">Open on YouTube</a></div>
+    <div id="moments"></div>
+  </aside>
+</main>
+
+<div id="scrim" hidden></div>
+<aside id="drawer" hidden role="dialog" aria-label="Chat history">
+  <div class="dh"><h2>History</h2><button class="linkbtn" id="histClose">Done</button></div>
+  <div id="hlist"></div>
+  <button class="linkbtn dangerbtn" id="clearAll">Clear all history</button>
+</aside>
+
+<script>
+// Address of your running backend (uvicorn). Change the port here if you use another one.
+const API = "http://127.0.0.1:8001";
+
+const $ = id => document.getElementById(id);
+const chat = $("chat"), msgEl = $("msg"), statusEl = $("status");
+let history = [], moments = [];
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const playIcon = '<svg viewBox="0 0 10 10" aria-hidden="true"><path d="M1 0l9 5-9 5z"/></svg>';
+function setStatus(t, err){ statusEl.textContent = t; statusEl.className = err ? "err" : ""; }
+
+/* ---------- video: a plain YouTube iframe, no scripts to load ---------- */
+function play(v, t, title){
+  $("stage").classList.remove("idle");
+  let f = $("frame");
+  if(!f){
+    f = document.createElement("iframe");
+    f.id = "frame"; f.title = "Video player";
+    f.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+    f.allowFullscreen = true;
+    f.referrerPolicy = "strict-origin-when-cross-origin";
+    $("screen").appendChild(f);
+  }
+  $("ph").firstElementChild.textContent = "Loading video…";
+  f.src = `https://www.youtube.com/embed/${v}?start=${t}&autoplay=1&rel=0&playsinline=1&modestbranding=1`;
+  $("now").textContent = title || "";
+  $("open").href = `https://www.youtube.com/watch?v=${v}&t=${t}s`;
+  $("openrow").hidden = false;
+}
+
+document.addEventListener("click", e => {
+  const a = e.target.closest("[data-v]");
+  if(!a) return;
+  e.preventDefault();
+  play(a.dataset.v, +a.dataset.t, a.dataset.title);
+});
+
+/* ---------- chat ---------- */
+async function post(path, body){
+  const r = await fetch(API + path, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  let data = null; try{ data = await r.json(); }catch(e){}
+  if(!r.ok){
+    let d = data && data.detail;
+    if(Array.isArray(d)) d = d.map(x => x.msg).join("; ");
+    throw new Error(d || "Request failed (" + r.status + ")");
+  }
+  return data;
+}
+
+const parseSrc = s => {
+  const m = s.url.match(/youtu\.be\/([^?]+)\?t=(\d+)/);
+  return m ? {v:m[1], t:+m[2], ts:s.timestamp, title:s.title, url:s.url} : null;
+};
+const attrs = m => `href="${m.url}" data-v="${m.v}" data-t="${m.t}" data-title="${esc(m.title)}"`;
+
+function render(text, srcs){
+  const byTs = {}; srcs.forEach(m => byTs[m.ts] = m);
+  let html = esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\[([^\[\]]*?)(\d{1,2}:\d{2}(?::\d{2})?)\]/g, (x, pre, t) =>
+    byTs[t] ? `<a class="ts" ${attrs(byTs[t])}>${pre}${t}</a>` : x);
+  const out = []; let list = null;
+  const close = () => { if(list){ out.push(`</${list}>`); list = null; } };
+  html.split("\n").forEach(line => {
+    const ol = line.match(/^\s*\d+\.\s+(.*)/), ul = line.match(/^\s*[-*•]\s+(.*)/);
+    if(ol || ul){
+      const tag = ol ? "ol" : "ul";
+      if(list !== tag){ close(); out.push(`<${tag}>`); list = tag; }
+      out.push(`<li>${(ol || ul)[1]}</li>`);
+    } else if(line.trim()){ close(); out.push(`<p>${line}</p>`); }
+  });
+  close();
+  return out.join("");
+}
+
+function add(cls, html, quiet){
+  $("hero")?.remove();
+  const el = document.createElement("div");
+  el.className = "msg " + cls; el.innerHTML = html;
+  chat.appendChild(el);
+  if(!quiet) el.scrollIntoView({block:"end", behavior:"smooth"});
+  return el;
+}
+
+function botHTML(answer, srcs){
+  const chips = srcs.map(m =>
+    `<a class="chip" ${attrs(m)}>${playIcon}${esc(m.title.length > 30 ? m.title.slice(0,30) + "…" : m.title)} · ${m.ts}</a>`).join("");
+  return render(answer, srcs) + (chips ? `<div class="chips">${chips}</div>` : "");
+}
+
+function showMoments(){
+  $("moments").innerHTML = moments.length
+    ? '<div class="mh">Moments from this answer</div>' + moments.map(m =>
+        `<a class="mom" ${attrs(m)}>${playIcon}<span class="mt">${esc(m.title)}</span><span class="tm">${m.ts}</span></a>`).join("")
+    : "";
+}
+
+async function send(){
+  const message = msgEl.value.trim();
+  if(!message) return;
+  msgEl.value = ""; msgEl.style.height = "auto";
+  add("user", esc(message));
+  const wait = add("bot", '<span class="typing">Searching the transcripts</span>');
+  $("send").disabled = true; busy = true;
+  try{
+    const data = await post("/api/chat", {message, history});
+    const srcs = (data.sources || []).map(parseSrc).filter(Boolean);
+    wait.innerHTML = botHTML(data.answer, srcs);
+    history.push([message, data.answer]);
+    moments = srcs; showMoments();
+    remember(message, data.answer, srcs);
+  }catch(e){
+    wait.className = "msg err";
+    wait.textContent = e.message.includes("Failed to fetch")
+      ? "Can't reach the server at " + API + ". Check that it is running." : e.message;
+  }finally{
+    $("send").disabled = false; busy = false; msgEl.focus();
+    wait.scrollIntoView({block:"end", behavior:"smooth"});
+  }
+}
+
+async function ingest(){
+  const url = $("url").value.trim();
+  if(!url){ setStatus("Paste a playlist link first.", true); return; }
+  $("ingest").disabled = true;
+  setStatus("Adding playlist. Every video is downloaded and transcribed, so this can take several minutes. Keep this tab open.");
+  try{
+    const d = await post("/api/ingest", {url});
+    let note = d.message;
+    if(d.failed && d.failed.length) note += " Skipped: " + d.failed.map(f => f.title).join(", ") + ".";
+    setStatus(note + " You can start asking questions.");
+  }catch(e){
+    setStatus(e.message.includes("Failed to fetch") ? "Can't reach the server at " + API + ". Check that it is running." : e.message, true);
+  }finally{ $("ingest").disabled = false; }
+}
+
+$("toggleAdd").addEventListener("click", () => {
+  const box = $("add"); box.hidden = !box.hidden;
+  $("toggleAdd").setAttribute("aria-expanded", String(!box.hidden));
+});
+$("send").addEventListener("click", send);
+$("ingest").addEventListener("click", ingest);
+msgEl.addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); send(); } });
+msgEl.addEventListener("input", () => { msgEl.style.height = "auto"; msgEl.style.height = Math.min(msgEl.scrollHeight, 140) + "px"; });
+
+/* ---------- history: saved in this browser ---------- */
+const KEY = "plc.chats.v1", CURKEY = "plc.cur.v1";
+const heroHTML = $("hero").outerHTML;
+let chats = [], cur = null, busy = false;
+try{ chats = JSON.parse(localStorage.getItem(KEY)) || []; }catch(e){}
+function persist(){
+  try{ localStorage.setItem(KEY, JSON.stringify(chats.slice(0, 50))); localStorage.setItem(CURKEY, cur ? cur.id : ""); }catch(e){}
+}
+function remember(q, a, srcs){
+  if(!cur) cur = {id: Date.now().toString(36), title: q.slice(0, 60), ts: 0, messages: []};
+  cur.messages.push({q, a, srcs}); cur.ts = Date.now();
+  chats = [cur, ...chats.filter(c => c.id !== cur.id)];
+  persist();
+}
+function newChat(){
+  if(busy) return;
+  cur = null; history = []; moments = [];
+  chat.innerHTML = heroHTML; showMoments(); persist();
+}
+function openChat(c){
+  if(busy) return;
+  cur = c; history = c.messages.map(m => [m.q, m.a]);
+  chat.innerHTML = "";
+  c.messages.forEach(m => { add("user", esc(m.q), true); add("bot", botHTML(m.a, m.srcs), true); });
+  const last = c.messages[c.messages.length - 1];
+  moments = last ? last.srcs : []; showMoments(); persist();
+  if(chat.lastElementChild) chat.lastElementChild.scrollIntoView({block:"end"});
+}
+const fmtDate = ts => new Date(ts).toLocaleString(undefined, {month:"short", day:"numeric", hour:"numeric", minute:"2-digit"});
+function drawHist(){
+  $("hlist").innerHTML = chats.length ? chats.map(c =>
+    `<div class="hrow${cur && c.id === cur.id ? " cur" : ""}"><button class="hopen" data-id="${c.id}"><span class="ht">${esc(c.title)}</span><span class="hd">${fmtDate(c.ts)} · ${c.messages.length} ${c.messages.length === 1 ? "question" : "questions"}</span></button><button class="hdel" data-del="${c.id}" aria-label="Delete this chat">×</button></div>`).join("")
+    : '<div class="hempty">Your past chats will show up here.</div>';
+  $("clearAll").hidden = !chats.length;
+}
+function showHist(){ drawHist(); $("scrim").hidden = false; $("drawer").hidden = false; $("histClose").focus(); }
+function hideHist(){ $("scrim").hidden = true; $("drawer").hidden = true; }
+
+$("newChat").addEventListener("click", newChat);
+$("openHist").addEventListener("click", showHist);
+$("histClose").addEventListener("click", hideHist);
+$("scrim").addEventListener("click", hideHist);
+document.addEventListener("keydown", e => { if(e.key === "Escape" && !$("drawer").hidden) hideHist(); });
+$("hlist").addEventListener("click", e => {
+  const del = e.target.closest("[data-del]"), op = e.target.closest("[data-id]");
+  if(del){
+    const wasCur = cur && cur.id === del.dataset.del;
+    chats = chats.filter(c => c.id !== del.dataset.del);
+    if(wasCur) newChat();
+    persist(); drawHist();
+  } else if(op){
+    const c = chats.find(c => c.id === op.dataset.id);
+    if(c){ openChat(c); hideHist(); }
+  }
+});
+$("clearAll").addEventListener("click", () => {
+  if(chats.length && confirm("Delete all saved chats?")){ chats = []; newChat(); drawHist(); }
+});
+
+// Bring back the chat you had open before refreshing
+let lastId = ""; try{ lastId = localStorage.getItem(CURKEY) || ""; }catch(e){}
+const lastChat = chats.find(c => c.id === lastId);
+if(lastChat) openChat(lastChat);
+</script>
+</body>
+</html>
